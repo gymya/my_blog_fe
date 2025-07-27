@@ -68,13 +68,35 @@
       },
     ],
   ]);
+  const searchInput = useTemplateRef('searchInput');
+
+  // Detect operating system - use ref to avoid hydration mismatch
+  const isWindows = ref(false);
+
+  // Only detect on client side to avoid hydration issues
+  onMounted(() => {
+    isWindows.value = navigator.userAgent.includes('Windows');
+  });
+
+  const shortcutKey = computed(() => (isWindows.value ? 'Ctrl+K' : '⌘K'));
+
+  // Use Nuxt's defineShortcuts for keyboard shortcuts
+  defineShortcuts({
+    meta_k: () => {
+      searchInput.value?.inputRef?.focus();
+    },
+  });
 </script>
 
 <template>
   <div>
     <UNavigationMenu :items="items" class="w-full">
       <template #search-trailing>
-        <UInput placeholder="Search..." />
+        <UInput ref="searchInput" placeholder="Search...">
+          <template #trailing>
+            <UKbd>{{ shortcutKey }}</UKbd>
+          </template>
+        </UInput>
       </template>
     </UNavigationMenu>
     <slot />

@@ -58,8 +58,7 @@
     ],
     [
       {
-        label: '',
-        slot: 'search' as const,
+        slot: 'searchButton' as const,
       },
       {
         icon: 'i-simple-icons-github',
@@ -68,35 +67,50 @@
       },
     ],
   ]);
-  const searchInput = useTemplateRef('searchInput');
 
-  // Detect operating system - use ref to avoid hydration mismatch
-  const isWindows = ref(false);
+  const open = ref(false);
 
-  // Only detect on client side to avoid hydration issues
-  onMounted(() => {
-    isWindows.value = navigator.userAgent.includes('Windows');
+  // Use computed property with import.meta.client to avoid hydration mismatch
+  const shortcutKey = computed(() => {
+    // Return default value during SSR, detect on client
+    if (!import.meta.client) {
+      return '⌘K'; // Default to Mac style during SSR
+    }
+    return navigator.userAgent.includes('Windows') ? 'Ctrl+K' : '⌘K';
   });
-
-  const shortcutKey = computed(() => (isWindows.value ? 'Ctrl+K' : '⌘K'));
 
   // Use Nuxt's defineShortcuts for keyboard shortcuts
   defineShortcuts({
-    meta_k: () => {
-      searchInput.value?.inputRef?.focus();
+    meta_k: {
+      handler: () => {
+        open.value = !open.value;
+      },
+      usingInput: true, // Allow shortcut to work when input is focused
     },
   });
 </script>
 
 <template>
   <div>
+    <UModal
+      v-model:open="open"
+      title="Search Articles"
+      description="Search articles by title or content"
+    >
+      <template #content>
+        <UCommandPalette placeholder="Search articles..." class="h-80" />
+      </template>
+    </UModal>
+
     <UNavigationMenu :items="items" class="w-full">
-      <template #search-trailing>
-        <UInput ref="searchInput" placeholder="Search...">
-          <template #trailing>
-            <UKbd>{{ shortcutKey }}</UKbd>
-          </template>
-        </UInput>
+      <template #searchButton>
+        <ClientOnly>
+          <UButton color="neutral" variant="outline" @click="open = true">
+            <UIcon name="i-lucide-search" class="size-5" />
+            <span class="opacity-50 mr-2">Search...</span>
+            {{ shortcutKey }}
+          </UButton>
+        </ClientOnly>
       </template>
     </UNavigationMenu>
     <slot />
